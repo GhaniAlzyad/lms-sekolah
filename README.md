@@ -72,7 +72,7 @@ Sistem ini dibangun dengan arsitektur yang sangat ringan, cepat, dan ramah terha
 Akses aplikasi melalui browser di alamat http://127.0.0.1:8000.
 
 ## 🔑 Akun Uji Coba (Default Seeder)
-\nSetelah menjalankan perintah --seed, kamu dapat langsung menguji sistem menggunakan kredensial berikut (kata sandi untuk semua akun: password123):
+Setelah menjalankan perintah --seed, kamu dapat langsung menguji sistem menggunakan kredensial berikut (kata sandi untuk semua akun: password123):
 Peran (Role),Nomor Induk / Username,Keterangan Akses
 Admin Yayasan,admin,Kelola data master unit MTs & MA
 Guru (MTs & MA),19980101,Mengampu mapel di MTs & MA + Wali Kelas X-IPA-1
@@ -95,4 +95,4 @@ Siswa MA,2001,Siswa unit MA (Kelas X-IPA-1)
 [ ] Modul Ujian Berbasis Komputer (CBT)
 
 ## 👨‍💻 Pengembang
-Dikembangkan oleh Ghani Alzyad — Mahasiswa Sistem Informasi, Fakultas Ilmu Komputer Institut Teknologi Garut (ITG) & Pendidik di Lingkungan Yayasan ARROJA.
+Dikembangkan oleh Ghani Al-Zyad — Mahasiswa Sistem Informasi, Fakultas Ilmu Komputer Institut Teknologi Garut (ITG) & Pendidik di Lingkungan Yayasan ARROJA.
