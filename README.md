@@ -7,52 +7,92 @@
 <a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/l/laravel/framework" alt="License"></a>
 </p>
 
-## About Laravel
+# 🎓 E-Learning ARROJA (LMS Multi-Unit MTs & MA)
 
-Laravel is a web application framework with expressive, elegant syntax. We believe development must be an enjoyable and creative experience to be truly fulfilling. Laravel takes the pain out of development by easing common tasks used in many web projects, such as:
+**E-Learning ARROJA** adalah sistem manajemen pembelajaran (*Learning Management System* / LMS) berbasis web yang dirancang khusus untuk memenuhi kebutuhan kegiatan belajar mengajar di lingkungan **Yayasan ARROJA** yang menaungi dua jenjang pendidikan sekaligus: **Madrasah Tsanawiyah (MTs)** dan **Madrasah Aliyah (MA)**.
 
-- [Simple, fast routing engine](https://laravel.com/docs/routing).
-- [Powerful dependency injection container](https://laravel.com/docs/container).
-- Multiple back-ends for [session](https://laravel.com/docs/session) and [cache](https://laravel.com/docs/cache) storage.
-- Expressive, intuitive [database ORM](https://laravel.com/docs/eloquent).
-- Database agnostic [schema migrations](https://laravel.com/docs/migrations).
-- [Robust background job processing](https://laravel.com/docs/queues).
-- [Real-time event broadcasting](https://laravel.com/docs/broadcasting).
+Sistem ini dibangun dengan arsitektur yang sangat ringan, cepat, dan ramah terhadap perangkat berspesifikasi rendah maupun akses melalui *smartphone* siswa.
 
-Laravel is accessible, powerful, and provides tools required for large, robust applications.
+---
 
-## Learning Laravel
+## ✨ Fitur Utama
 
-Laravel has the most extensive and thorough [documentation](https://laravel.com/docs) and video tutorial library of all modern web application frameworks, making it a breeze to get started with the framework.
+### 1. Arsitektur Multi-Unit & Multi-Role (Single Sign-On)
+* **Satu Pintu Masuk:** Seluruh warga sekolah (Operator, Guru, Wali Kelas, dan Siswa) masuk melalui satu halaman login menggunakan **Nomor Induk (NISN / NUPTK / Username)**.
+* **Dukungan Lintas Sekolah:** Guru yang mengajar di kedua jenjang (MTs dan MA) cukup menggunakan **1 akun** untuk mengelola seluruh kelas dan mata pelajaran yang diampu.
 
-In addition, [Laracasts](https://laracasts.com) contains thousands of video tutorials on a range of topics including Laravel, modern PHP, unit testing, and JavaScript. Boost your skills by digging into our comprehensive video library.
+### 2. Hak Akses & Dashboard Terpadu
+* **Operator / Admin Yayasan:**
+  * Statistik ringkas jumlah guru, siswa MTs, siswa MA, rombongan belajar, dan mata pelajaran.
+  * Manajemen Data Master penuh (**CRUD**): Data Guru, Data Kelas & Wali Kelas, Data Siswa (otomatis masuk rombel), serta Plotting Mata Pelajaran.
+* **Guru Mata Pelajaran & Wali Kelas:**
+  * Tampilan kartu kelas lintas unit (MTs & MA) beserta indikator tugas masuk yang belum dinilai.
+  * **Fitur Wali Kelas Otomatis:** Guru yang ditunjuk sebagai Wali Kelas otomatis mendapatkan panel pemantauan khusus untuk kelas perwaliannya.
+  * *(Dalam Pengembangan)* Manajemen Materi ajar, Tugas dengan tenggat waktu (*deadline*), Penilaian, dan Presensi kelas.
+* **Siswa (MTs & MA):**
+  * Daftar tugas aktif (*To-Do List*) lengkap dengan status pengumpulan dan nilai.
+  * Daftar mata pelajaran sesuai rombongan belajar masing-masing.
 
-You can also watch bite-sized lessons with real-world projects on [Laravel Learn](https://laravel.com/learn), where you will be guided through building a Laravel application from scratch while learning PHP fundamentals.
+---
 
-## Agentic Development
+## 🛠️ Teknologi yang Digunakan (*Tech Stack*)
 
-Laravel's predictable structure and conventions make it ideal for AI coding agents like Claude Code, Cursor, and GitHub Copilot. Install [Laravel Boost](https://laravel.com/docs/ai) to supercharge your AI workflow:
+* **Backend:** PHP 8.x, Laravel Framework
+* **Frontend:** Blade Templating, Bootstrap 5 (via CDN), Alpine.js (via CDN)
+* **Database:** SQLite (Ringan, cepat, portabel, tanpa memerlukan servis database server terpisah)
 
-```bash
-composer require laravel/boost --dev
+---
 
-php artisan boost:install
-```
+## 🚀 Cara Instalasi di Komputer Lokal
 
-Boost provides your agent 15+ tools and skills that help agents build Laravel applications while following best practices.
+1. **Clone repositori ini:**
+   ```bash
+   git clone [https://github.com/GhaniAlzyad/lms-sekolah.git](https://github.com/GhaniAlzyad/lms-sekolah.git)
+   cd lms-sekolah
 
-## Contributing
+2. Instal dependensi PHP menggunakan Composer:
+	```bash
+	composer install
 
-Thank you for considering contributing to the Laravel framework! The contribution guide can be found in the [Laravel documentation](https://laravel.com/docs/contributions).
+3. Salin file konfigurasi .env dan generate application key:
+	```bash
+	cp .env.example .env
+	php artisan key:generate
 
-## Code of Conduct
+4. Pastikan konfigurasi database di file .env menggunakan SQLite:
+	DB_CONNECTION=sqlite
 
-In order to ensure that the Laravel community is welcoming to all, please review and abide by the [Code of Conduct](https://laravel.com/docs/contributions#code-of-conduct).
+5. Jalankan migrasi database beserta data awal (seeder):
+	```bash
+	php artisan migrate:fresh --seed
 
-## Security Vulnerabilities
+6. Jalankan server lokal:
+	```bash
+	php artisan serve
+Akses aplikasi melalui browser di alamat http://127.0.0.1:8000.
 
-If you discover a security vulnerability within Laravel, please send an e-mail to Taylor Otwell via [taylor@laravel.com](mailto:taylor@laravel.com). All security vulnerabilities will be promptly addressed.
+🔑 Akun Uji Coba (Default Seeder)
+Setelah menjalankan perintah --seed, kamu dapat langsung menguji sistem menggunakan kredensial berikut (kata sandi untuk semua akun: password123):
+Peran (Role),Nomor Induk / Username,Keterangan Akses
+Admin Yayasan,admin,Kelola data master unit MTs & MA
+Guru (MTs & MA),19980101,Mengampu mapel di MTs & MA + Wali Kelas X-IPA-1
+Siswa MTs,1001,Siswa unit MTs (Kelas VII-A)
+Siswa MA,2001,Siswa unit MA (Kelas X-IPA-1)
 
-## License
+🗺️ Peta Jalan Pengembangan (Roadmap)
+[x] Autentikasi Multi-Role berbasis Nomor Induk (NISN/NUPTK)
 
-The Laravel framework is open-sourced software licensed under the [MIT license](https://opensource.org/licenses/MIT).
+[x] Dashboard terpisah untuk Admin, Guru (Lintas Unit & Wali Kelas), dan Siswa
+
+[x] Modul CRUD Data Master Admin (Guru, Kelas, Siswa, Plotting Mapel)
+
+[ ] Ruang Kelas Guru: Posting Materi (YouTube/Drive), Tugas, & Penilaian
+
+[ ] Ruang Kelas Siswa: Akses Materi & Pengumpulan Tugas
+
+[ ] Modul Presensi Siswa & Rekapitulasi Wali Kelas
+
+[ ] Modul Ujian Berbasis Komputer (CBT)
+
+👨‍💻 Pengembang
+Dikembangkan oleh Ghani Alzyad — Mahasiswa Sistem Informasi, Fakultas Ilmu Komputer Institut Teknologi Garut (ITG) & Pendidik di Lingkungan Yayasan ARROJA.
