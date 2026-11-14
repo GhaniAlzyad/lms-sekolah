@@ -103,6 +103,22 @@ class DashboardController extends Controller
                 ->get();
         }
 
-        return view('dashboard.siswa', compact('kelasSiswa', 'mapels', 'tugasAktif'));
+        // Hitung rekap kehadiran harian siswa (1 hari = 1 status)
+        $presensiHarian = DB::table('presensis')
+            ->where('siswa_id', $siswaId)
+            ->select('tanggal', 'status')
+            ->get()
+            ->groupBy('tanggal');
+
+        $rekapHadir = ['Hadir' => 0, 'Izin' => 0, 'Sakit' => 0, 'Alpa' => 0];
+        foreach ($presensiHarian as $catatan) {
+            $statuses = $catatan->pluck('status')->toArray();
+            if (in_array('Alpa', $statuses)) $rekapHadir['Alpa']++;
+            elseif (in_array('Sakit', $statuses)) $rekapHadir['Sakit']++;
+            elseif (in_array('Izin', $statuses)) $rekapHadir['Izin']++;
+            else $rekapHadir['Hadir']++;
+        }
+
+        return view('dashboard.siswa', compact('kelasSiswa', 'mapels', 'tugasAktif', 'rekapHadir'));
     }
 }

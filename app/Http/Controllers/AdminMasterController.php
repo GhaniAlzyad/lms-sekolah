@@ -300,4 +300,58 @@ class AdminMasterController extends Controller
         DB::table('mapels')->where('id', $id)->delete();
         return back()->with('success', 'Mata Pelajaran berhasil dihapus.');
     }
+
+    public function siswaImport(Request $request)
+    {
+        $request->validate([
+            'file_csv' => 'required|file|mimes:csv,txt|max:2048',
+        ]);
+
+        $path = $request->file('file_csv')->getRealPath();
+        $lines = file($path, FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES);
+
+        if (count($lines) < 2) {
+            return back()->withErrors(['file_csv' => 'File CSV kosong atau tidak memiliki data.']);
+        }
+
+        // Deteksi otomatis pemisah koma (,) atau titik koma (;) dari Excel
+        $delimiter = str_contains($lines[0], ';') ? ';' : ',';
+        $berhasil = 0;
+
+        foreach (array_slice($lines, 1) as $line) {
+            $row = str_getcsv($line, $delimiter);
+            if (count($row) < 3) continue;
+
+            $nisn = trim($row[0]);
+            $nama = trim($row[1]);
+            $namaKelas = trim($row[2]);
+
+            $kelas = DB::table('kelas')->whereRaw('LOWER(nama_kelas) = ?', [strtolower($namaKelas)])->first();
+            if (!$kelas || empty($nisn) || empty($nama)) continue;
+
+            $existingUser = DB::table('users')->where('nomor_induk', $nisn)->first();
+            if ($existingUser) continue; // Lewati jika NISN sudah terdaftar
+
+            $userId = DB::table('users')->insertGetId([
+                'unit_id' => $kelas->unit_id,
+                'nomor_induk' => $nisn,
+                'name' => $nama,
+                'role' => 'siswa',
+                'password' => Hash::make('password123'),
+                'created_at' => now(),
+                'updated_at' => now(),
+            ]);
+
+            DB::table('kelas_siswa')->insert([
+                'kelas_id' => $kelas->id,
+                'user_id' => $userId,
+                'created_at' => now(),
+                'updated_at' => now(),
+            ]);
+
+            $berhasil++;
+        }
+
+        return back()->with('success', "$berhasil data siswa berhasil diimpor (Password default: password123).");
+    }
 }

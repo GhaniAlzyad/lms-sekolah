@@ -4,6 +4,8 @@ namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\DB;
 
 class AuthController extends Controller
 {
@@ -36,6 +38,30 @@ class AuthController extends Controller
         return back()->withErrors([
             'nomor_induk' => 'Nomor Induk (NISN/NUPTK) atau kata sandi salah.',
         ])->onlyInput('nomor_induk');
+    }
+
+    public function changePassword(Request $request)
+    {
+        $request->validate([
+            'current_password' => 'required',
+            'new_password' => 'required|min:6|confirmed',
+        ], [
+            'new_password.confirmed' => 'Konfirmasi password baru tidak cocok.',
+            'new_password.min' => 'Password baru minimal 6 karakter.',
+        ]);
+
+        $user = Auth::user();
+
+        if (!Hash::check($request->current_password, $user->password)) {
+            return back()->withErrors(['current_password' => 'Password lama Anda salah.']);
+        }
+
+        DB::table('users')->where('id', $user->id)->update([
+            'password' => Hash::make($request->new_password),
+            'updated_at' => now(),
+        ]);
+
+        return back()->with('success', 'Password berhasil diubah.');
     }
 
     public function logout(Request $request)

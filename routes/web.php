@@ -4,6 +4,8 @@ use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\AdminMasterController;
+use App\Http\Controllers\GuruKelasController;
+use App\Http\Controllers\SiswaKelasController;
 
 // Halaman Awal langsung arahkan ke Login
 // Halaman Awal: cek apakah sudah login atau belum
@@ -22,6 +24,10 @@ Route::middleware('guest')->group(function () {
     Route::get('/login', [AuthController::class, 'showLogin'])->name('login');
     Route::post('/login', [AuthController::class, 'login'])->name('login.post');
 });
+
+Route::post('/ganti-password', [AuthController::class, 'changePassword'])
+    ->middleware('auth')
+    ->name('password.change');
 
 // Logout
 Route::post('/logout', [AuthController::class, 'logout'])->middleware('auth')->name('logout');
@@ -55,10 +61,31 @@ Route::middleware(['auth', 'role:admin'])->prefix('admin')->name('admin.')->grou
     Route::put('/mapel/{id}', [AdminMasterController::class, 'mapelUpdate'])->name('mapel.update');
 });
 
-Route::middleware(['auth', 'role:guru'])->group(function () {
-    Route::get('/guru/dashboard', [DashboardController::class, 'guru'])->name('guru.dashboard');
+Route::middleware(['auth', 'role:guru'])->prefix('guru')->name('guru.')->group(function () {
+    Route::get('/dashboard', [DashboardController::class, 'guru'])->name('dashboard');
+    
+    // Ruang Kelas (Materi & Tugas)
+    Route::get('/kelas/{mapelId}', [GuruKelasController::class, 'show'])->name('kelas.show');
+    Route::post('/kelas/{mapelId}/konten', [GuruKelasController::class, 'storeKonten'])->name('konten.store');
+    Route::delete('/konten/{id}', [GuruKelasController::class, 'destroyKonten'])->name('konten.destroy');
+    Route::put('/konten/{id}', [GuruKelasController::class, 'updateKonten'])->name('konten.update');
+
+    // Penilaian Tugas
+    Route::get('/tugas/{tugasId}/nilai', [GuruKelasController::class, 'lihatPengumpulan'])->name('tugas.nilai');
+    Route::post('/pengumpulan/{pengumpulanId}/nilai', [GuruKelasController::class, 'simpanNilai'])->name('tugas.simpan_nilai');
+
+    // Presensi Siswa
+    Route::get('/kelas/{mapelId}/presensi', [GuruKelasController::class, 'presensiIndex'])->name('presensi.index');
+    Route::post('/kelas/{mapelId}/presensi', [GuruKelasController::class, 'presensiStore'])->name('presensi.store');
+
+    // Rekap Wali Kelas
+    Route::get('/wali-kelas/rekap', [GuruKelasController::class, 'rekapWaliKelas'])->name('wali_kelas.rekap');
+
+    Route::get('/wali-kelas/export-csv', [GuruKelasController::class, 'exportRekapWaliKelas'])->name('wali_kelas.export');
 });
 
-Route::middleware(['auth', 'role:siswa'])->group(function () {
-    Route::get('/siswa/dashboard', [DashboardController::class, 'siswa'])->name('siswa.dashboard');
+Route::middleware(['auth', 'role:siswa'])->prefix('siswa')->name('siswa.')->group(function () {
+    Route::get('/dashboard', [DashboardController::class, 'siswa'])->name('dashboard');
+    Route::get('/kelas/{mapelId}', [SiswaKelasController::class, 'show'])->name('kelas.show');
+    Route::post('/tugas/{tugasId}/kumpul', [SiswaKelasController::class, 'kumpulTugas'])->name('tugas.kumpul');
 });
