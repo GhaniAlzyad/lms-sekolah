@@ -73,6 +73,7 @@ Route::middleware(['auth', 'role:guru'])->prefix('guru')->name('guru.')->group(f
     // Penilaian Tugas
     Route::get('/tugas/{tugasId}/nilai', [GuruKelasController::class, 'lihatPengumpulan'])->name('tugas.nilai');
     Route::post('/pengumpulan/{pengumpulanId}/nilai', [GuruKelasController::class, 'simpanNilai'])->name('tugas.simpan_nilai');
+    Route::post('/tugas/{tugasId}/izin-susulan/{siswaId}', [GuruKelasController::class, 'toggleIzinSusulan'])->name('tugas.izin_susulan');
 
     // Presensi Siswa
     Route::get('/kelas/{mapelId}/presensi', [GuruKelasController::class, 'presensiIndex'])->name('presensi.index');

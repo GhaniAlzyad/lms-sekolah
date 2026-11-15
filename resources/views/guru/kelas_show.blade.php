@@ -1,16 +1,19 @@
 @extends('layouts.app')
 
 @section('content')
-<div class="d-flex justify-content-between align-items-center mb-3">
+<div class="d-flex flex-wrap justify-content-between align-items-start gap-2 mb-4">
     <div>
-        <span class="badge {{ $mapel->unit == 'MTs' ? 'bg-primary' : 'bg-info text-dark' }}">{{ $mapel->unit }} • Kelas {{ $mapel->nama_kelas }}</span>
-        <h5 class="fw-bold mb-0 mt-1">{{ $mapel->nama_mapel }}</h5>
+        <span class="badge bg-info text-dark mb-1">{{ $mapel->unit }} • {{ $mapel->nama_kelas }}</span>
+        <h4 class="fw-bold mb-0">{{ $mapel->nama_mapel }}</h4>
     </div>
-    <div class="d-flex gap-2">
-        <a href="{{ route('guru.presensi.index', $mapel->id) }}" class="btn btn-sm btn-outline-primary">📋 Presensi Kelas</a>
-        <a href="{{ route('guru.dashboard') }}" class="btn btn-sm btn-outline-secondary">← Dashboard</a>
+    <div class="d-flex align-items-center gap-2">
+        <a href="{{ route('guru.presensi.index', $mapel->id) }}" class="btn btn-sm btn-outline-primary">
+            📋 Presensi Kelas
+        </a>
+        <a href="{{ route('guru.dashboard') }}" class="btn btn-sm btn-outline-secondary">
+            ← Dashboard
+        </a>
     </div>
-    <a href="{{ route('guru.dashboard') }}" class="btn btn-sm btn-outline-secondary">← Dashboard</a>
 </div>
 
 @if(session('success'))
@@ -60,46 +63,64 @@
     <!-- Daftar Materi & Tugas yang Sudah Diposting -->
     <div class="col-md-8">
         @forelse($kontens as $k)
-            <div class="card border-0 shadow-sm mb-3">
-                <div class="card-body">
-                    <div class="d-flex gap-1">
-                            <button class="btn btn-xs btn-outline-warning py-0 px-2" data-bs-toggle="modal" data-bs-target="#editKonten{{ $k->id }}">Edit</button>
-                            <form action="{{ route('guru.konten.destroy', $k->id) }}" method="POST" onsubmit="return confirm('Hapus postingan ini?')">
-                                @csrf @method('DELETE')
-                                <button class="btn btn-xs btn-outline-danger py-0 px-2">Hapus</button>
-                            </form>
-                        </div>
+        <div class="card border-0 shadow-sm mb-3">
+            <div class="card-body">
+                {{-- Baris 1: Lencana Tipe, Judul Utama (Highlight), & Tombol Edit/Hapus di Kanan Atas --}}
+                <div class="d-flex justify-content-between align-items-start gap-2 mb-2">
+                    <div>
+                        <span class="badge {{ $k->tipe === 'tugas' ? 'bg-warning text-dark' : 'bg-info text-dark' }} mb-1">
+                            {{ $k->tipe === 'tugas' ? '📝 Tugas' : '📘 Materi' }}
+                        </span>
+                        <h6 class="fw-bold text-dark fs-5 mb-0">{{ $k->judul }}</h6>
+                    </div>
 
-                    @if($k->deskripsi)
-                        <p class="small text-secondary mb-2">{!! nl2br(e($k->deskripsi)) !!}</p>
-                    @endif
-
-                    <div class="d-flex flex-wrap justify-content-between align-items-center mt-3 pt-2 border-top small">
-                        <div>
-                            @if($k->link_lampiran)
-                                <a href="{{ $k->link_lampiran }}" target="_blank" class="btn btn-xs btn-outline-primary py-0 px-2 me-2">🔗 Buka Lampiran</a>
-                            @endif
-                            @if($k->tipe == 'tugas' && $k->deadline)
-                                <span class="text-danger">Deadline: {{ \Carbon\Carbon::parse($k->deadline)->format('d M Y, H:i') }}</span>
-                            @endif
-                        </div>
-
-                        @if($k->tipe == 'tugas')
-                            <a href="{{ route('guru.tugas.nilai', $k->id) }}" class="btn btn-sm btn-success mt-2 mt-sm-0">
-                                Periksa Jawaban ({{ $k->jumlah_kumpul }} Masuk)
-                            </a>
-                        @endif
+                    <div class="d-flex gap-1 flex-shrink-0">
+                        <button type="button" class="btn btn-sm btn-outline-warning py-0 px-2" data-bs-toggle="modal" data-bs-target="#editKonten{{ $k->id }}">
+                            Edit
+                        </button>
+                        <form action="{{ route('guru.konten.destroy', $k->id) }}" method="POST" onsubmit="return confirm('Hapus postingan ini beserta seluruh data terkait?')">
+                            @csrf @method('DELETE')
+                            <button type="submit" class="btn btn-sm btn-outline-danger py-0 px-2">Hapus</button>
+                        </form>
                     </div>
                 </div>
-            </div>
-        @empty
-            <div class="card border-0 shadow-sm">
-                <div class="card-body text-center text-muted py-4 small">
-                    Belum ada materi atau tugas yang dibagikan di kelas ini.
+
+                {{-- Baris 2: Isi / Instruksi Tugas (Ter-highlight dengan latar lembut) --}}
+                @if($k->deskripsi)
+                <div class="bg-light rounded p-2 px-3 text-dark small mb-3 border-start border-3 {{ $k->tipe === 'tugas' ? 'border-warning' : 'border-info' }}" style="white-space: pre-line;">{{ $k->deskripsi }}</div>
+                @endif
+
+                {{-- Baris 3: Footer Kartu (Lampiran, Deadline, & Tombol Periksa Jawaban) --}}
+                <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 pt-2 border-top">
+                    <div class="d-flex flex-wrap align-items-center gap-2">
+                        @if($k->link_lampiran)
+                        <a href="{{ $k->link_lampiran }}" target="_blank" class="btn btn-sm btn-outline-primary">
+                            📎 Buka Lampiran
+                        </a>
+                        @endif
+
+                        @if($k->tipe === 'tugas' && $k->deadline)
+                        <span class="small text-danger fw-semibold">
+                            ⏰ Deadline: {{ \Carbon\Carbon::parse($k->deadline)->format('d M Y, H:i') }}
+                        </span>
+                        @endif
+                    </div>
+
+                    @if($k->tipe === 'tugas')
+                    <a href="{{ route('guru.tugas.nilai', $k->id) }}" class="btn btn-sm btn-success fw-semibold">
+                        Periksa Jawaban ({{ $k->jumlah_kumpul ?? 0 }} Masuk
+                    </a>
+                    @endif
                 </div>
             </div>
-        @endforelse
-    </div>
+        </div>
+        @empty
+
+        <div class="alert alert-light border text-center text-muted py-4">
+            Belum ada materi atau tugas yang dibagikan di kelas ini.
+        </div>
+    @endforelse
+</div>
 </div>
 <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
 

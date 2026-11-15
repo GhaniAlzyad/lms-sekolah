@@ -99,12 +99,16 @@ class GuruKelasController extends Controller
 
         if (!$tugas) abort(403);
 
-        // Ambil seluruh siswa di kelas tersebut beserta status pengumpulannya
+        // Ambil seluruh siswa di kelas tersebut beserta status pengumpulan & izin susulannya
         $daftarSiswa = DB::table('kelas_siswa')
             ->join('users', 'kelas_siswa.user_id', '=', 'users.id')
             ->leftJoin('pengumpulan_tugas', function ($join) use ($tugasId) {
                 $join->on('users.id', '=', 'pengumpulan_tugas.siswa_id')
                      ->where('pengumpulan_tugas.materi_tugas_id', '=', $tugasId);
+            })
+            ->leftJoin('izin_susulan', function ($join) use ($tugasId) {
+                $join->on('users.id', '=', 'izin_susulan.siswa_id')
+                     ->where('izin_susulan.materi_tugas_id', '=', $tugasId);
             })
             ->where('kelas_siswa.kelas_id', $tugas->kelas_id)
             ->select(
@@ -115,12 +119,45 @@ class GuruKelasController extends Controller
                 'pengumpulan_tugas.link_jawaban',
                 'pengumpulan_tugas.nilai',
                 'pengumpulan_tugas.catatan_guru',
-                'pengumpulan_tugas.updated_at as waktu_kumpul'
+                'pengumpulan_tugas.updated_at as waktu_kumpul',
+                'izin_susulan.id as izin_susulan_id'
             )
             ->orderBy('users.name')
             ->get();
 
         return view('guru.tugas_nilai', compact('tugas', 'daftarSiswa'));
+    }
+
+    // 4b. Buka / Tutup Izin Susulan Siswa
+    public function toggleIzinSusulan($tugasId, $siswaId)
+    {
+        // Pastikan tugas ini benar-benar milik mapel guru yang sedang login
+        $tugasValid = DB::table('materi_tugas')
+            ->join('mapels', 'materi_tugas.mapel_id', '=', 'mapels.id')
+            ->where('materi_tugas.id', $tugasId)
+            ->where('mapels.guru_id', Auth::id())
+            ->exists();
+
+        if (!$tugasValid) abort(403);
+
+        $cek = DB::table('izin_susulan')
+            ->where('materi_tugas_id', $tugasId)
+            ->where('siswa_id', $siswaId)
+            ->first();
+
+        if ($cek) {
+            DB::table('izin_susulan')->where('id', $cek->id)->delete();
+            return back()->with('success', 'Izin susulan siswa ditutup kembali.');
+        }
+
+        DB::table('izin_susulan')->insert([
+            'materi_tugas_id' => $tugasId,
+            'siswa_id'        => $siswaId,
+            'created_at'      => now(),
+            'updated_at'      => now(),
+        ]);
+
+        return back()->with('success', 'Izin susulan diberikan. Siswa kini dapat mengumpulkan tugas dengan status Terlambat.');
     }
 
     // 5. Simpan Nilai & Catatan Guru

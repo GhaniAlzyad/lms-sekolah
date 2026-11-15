@@ -1,98 +1,146 @@
 @extends('layouts.app')
 
 @section('content')
-<div class="d-flex justify-content-between align-items-center mb-3">
+<div class="d-flex justify-content-between align-items-start mb-4">
     <div>
-        <span class="badge {{ $mapel->unit == 'MTs' ? 'bg-primary' : 'bg-info text-dark' }}">{{ $mapel->unit }} • Kelas {{ $mapel->nama_kelas }}</span>
-        <h5 class="fw-bold mb-0 mt-1">{{ $mapel->nama_mapel }}</h5>
-        <small class="text-muted">Guru Pengampu: {{ $mapel->nama_guru }}</small>
+        <span class="badge bg-info text-dark mb-1">{{ $mapel->unit ?? '' }} • {{ $mapel->nama_kelas ?? '' }}</span>
+        <h4 class="fw-bold mb-0">{{ $mapel->nama_mapel }}</h4>
+        <div class="text-muted small">Guru Pengampu: {{ $mapel->nama_guru }}</div>
     </div>
-    <a href="{{ route('siswa.dashboard') }}" class="btn btn-sm btn-outline-secondary">← Dashboard</a>
+    <a href="{{ route('siswa.dashboard') }}" class="btn btn-sm btn-outline-secondary">
+        ← Dashboard
+    </a>
 </div>
 
-@if(session('success'))
-    <div class="alert alert-success py-2 small">{{ session('success') }}</div>
-@endif
-@if($errors->any())
-    <div class="alert alert-danger py-2 small">{{ $errors->first() }}</div>
-@endif
+@forelse($kontens as $k)
+@php
+    $now = \Carbon\Carbon::now('Asia/Jakarta');
+    $deadline = $k->deadline ? \Carbon\Carbon::parse($k->deadline, 'Asia/Jakarta') : null;
+    $waktuKumpul = $k->waktu_kumpul ? \Carbon\Carbon::parse($k->waktu_kumpul, 'Asia/Jakarta') : null;
 
-<div class="row">
-    <div class="col-lg-9 mx-auto">
-        @forelse($kontens as $k)
-            <div class="card border-0 shadow-sm mb-3">
-                <div class="card-body">
-                    <div class="d-flex justify-content-between align-items-center mb-1">
-                        <span class="badge {{ $k->tipe == 'materi' ? 'bg-primary' : 'bg-warning text-dark' }} text-uppercase">
-                            {{ $k->tipe == 'materi' ? '📘 Materi' : '📝 Tugas' }}
-                        </span>
-                        <small class="text-muted">{{ \Carbon\Carbon::parse($k->created_at)->format('d M Y') }}</small>
-                    </div>
+    $lewatDeadline = $k->tipe === 'tugas' && $deadline && $now->gt($deadline);
+    $kumpulTerlambat = $k->pengumpulan_id && $deadline && $waktuKumpul && $waktuKumpul->gt($deadline);
+    $bolehKumpul = !$lewatDeadline || !empty($k->izin_susulan_id);
+@endphp
 
-                    <h6 class="fw-bold mt-2">{{ $k->judul }}</h6>
+<div class="card border-0 shadow-sm mb-3">
+    <div class="card-body">
+        {{-- Baris 1: Lencana Tipe, Judul Utama (Highlight), & Status Pengumpulan --}}
+        <div class="d-flex justify-content-between align-items-start gap-2 mb-2">
+            <div>
+                <span class="badge {{ $k->tipe === 'tugas' ? 'bg-warning text-dark' : 'bg-info text-dark' }} mb-1">
+                    {{ $k->tipe === 'tugas' ? '📝 Tugas' : '📘 Materi' }}
+                </span>
+                <h6 class="fw-bold text-dark fs-5 mb-0">{{ $k->judul }}</h6>
+            </div>
 
-                    @if($k->deskripsi)
-                        <p class="small text-secondary mb-3">{!! nl2br(e($k->deskripsi)) !!}</p>
-                    @endif
+            @if($k->tipe === 'tugas')
+                <div class="text-end flex-shrink-0">
+                    @if($k->pengumpulan_id)
+                        <span class="badge bg-success">✅ Sudah Dikumpulkan</span>
+                        @if($kumpulTerlambat)
+                            <span class="badge bg-danger">⚠️ Terlambat</span>
+                        @else
+                            <span class="badge bg-info text-dark">⏱️ Tepat Waktu</span>
+                        @endif
 
-                    @if($k->link_lampiran)
-                        <div class="mb-3">
-                            <a href="{{ $k->link_lampiran }}" target="_blank" class="btn btn-sm btn-outline-primary">
-                                🔗 Buka Materi / Lampiran Guru
-                            </a>
-                        </div>
-                    @endif
-
-                    @if($k->tipe === 'tugas')
-                        <div class="bg-light p-3 rounded border mt-2">
-                            <div class="d-flex justify-content-between align-items-center mb-2 small">
-                                <span class="text-danger fw-semibold">
-                                    ⏰ Batas Waktu: {{ \Carbon\Carbon::parse($k->deadline)->format('d M Y, H:i') }}
-                                </span>
-                                @if($k->nilai !== null)
-                                    <span class="badge bg-success fs-6">Nilai: {{ $k->nilai }} / 100</span>
-                                @elseif($k->pengumpulan_id)
-                                    <span class="badge bg-info text-dark">Sudah Dikumpulkan (Menunggu Dinilai)</span>
-                                @else
-                                    <span class="badge bg-secondary">Belum Dikumpulkan</span>
-                                @endif
+                        @if(!is_null($k->nilai))
+                            <div class="mt-1">
+                                <span class="badge bg-primary fs-6">Nilai: {{ $k->nilai }}</span>
                             </div>
-
-                            @if($k->catatan_guru)
-                                <div class="alert alert-info py-1 px-2 small mb-2">
-                                    <strong>Catatan Guru:</strong> {{ $k->catatan_guru }}
+                        @endif
+                    @else
+                        @if($lewatDeadline)
+                            <span class="badge bg-danger">⚠️ Terlambat (Terkunci)</span>
+                            @if($k->izin_susulan_id)
+                                <div class="mt-1">
+                                    <span class="badge bg-warning text-dark">🔓 Izin Susulan Aktif</span>
                                 </div>
                             @endif
-
-                            @if($k->nilai === null)
-                                <form action="{{ route('siswa.tugas.kumpul', $k->id) }}" method="POST" class="mt-2">
-                                    @csrf
-                                    <label class="form-label small fw-semibold mb-1">
-                                        {{ $k->pengumpulan_id ? 'Perbarui Link Jawaban (Google Drive / Foto / Colab):' : 'Kumpulkan Link Jawaban (Google Drive / Foto / Colab):' }}
-                                    </label>
-                                    <div class="input-group input-group-sm">
-                                        <input type="url" name="link_jawaban" class="form-control" value="{{ $k->link_jawaban }}" placeholder="https://drive.google.com/..." required>
-                                        <button type="submit" class="btn btn-success fw-semibold">
-                                            {{ $k->pengumpulan_id ? 'Update Jawaban' : 'Kirim Tugas' }}
-                                        </button>
-                                    </div>
-                                </form>
-                            @else
-                                <div class="small">
-                                    Link jawabanmu: <a href="{{ $k->link_jawaban }}" target="_blank">{{ $k->link_jawaban }}</a>
-                                </div>
-                            @endif
-                        </div>
+                        @else
+                            <span class="badge bg-secondary">⏳ Belum Dikerjakan</span>
+                        @endif
                     @endif
                 </div>
-            </div>
-        @empty
-            <div class="card border-0 shadow-sm">
-                <div class="card-body text-center text-muted py-4 small">
-                    Belum ada materi atau tugas pada mata pelajaran ini.
+            @endif
+        </div>
+
+        {{-- Baris 2: Isi / Instruksi Materi & Tugas (Ter-highlight) --}}
+        @if($k->deskripsi)
+        <div class="bg-light rounded p-2 px-3 text-dark small mb-3 border-start border-3 {{ $k->tipe === 'tugas' ? 'border-warning' : 'border-info' }}" style="white-space: pre-line;">{{ $k->deskripsi }}</div>
+        @endif
+
+        {{-- Catatan Evaluasi dari Guru --}}
+        @if($k->tipe === 'tugas' && !empty($k->catatan_guru))
+        <div class="alert alert-info py-2 px-3 small mb-3">
+            <strong>💬 Catatan Guru:</strong> {{ $k->catatan_guru }}
+        </div>
+        @endif
+
+        {{-- Baris 3: Lampiran & Deadline --}}
+        @if($k->link_lampiran || ($k->tipe === 'tugas' && $k->deadline))
+        <div class="d-flex flex-wrap align-items-center gap-2 pt-2 border-top">
+            @if($k->link_lampiran)
+            <a href="{{ $k->link_lampiran }}" target="_blank" class="btn btn-sm btn-outline-primary">
+                📎 Buka Lampiran
+            </a>
+            @endif
+
+            @if($k->tipe === 'tugas' && $k->deadline)
+            <span class="small text-danger fw-semibold">
+                ⏰ Deadline: {{ $deadline->format('d M Y, H:i') }} WIB
+            </span>
+            @endif
+        </div>
+        @endif
+
+        {{-- Baris 4: Form Kumpul Tugas ATAU Pesan Terkunci --}}
+        @if($k->tipe === 'tugas')
+        <div class="mt-3 pt-3 border-top">
+            @if($bolehKumpul)
+                <form action="{{ route('siswa.tugas.kumpul', $k->id) }}" method="POST" class="row g-2 align-items-center">
+                    @csrf
+                    <div class="{{ $k->link_jawaban ? 'col-md-7' : 'col-md-9' }}">
+                        <input type="url" name="link_jawaban" class="form-control form-control-sm"
+                            placeholder="Tempel link Google Drive / Docs / YouTube / GitHub di sini..."
+                            value="{{ $k->link_jawaban }}" required>
+                    </div>
+                    @if($k->link_jawaban)
+                    <div class="col-md-2">
+                        <a href="{{ $k->link_jawaban }}" target="_blank" class="btn btn-sm btn-outline-secondary w-100">
+                            🔗 Cek Link
+                        </a>
+                    </div>
+                    @endif
+                    <div class="col-md-3">
+                        <button type="submit" class="btn btn-sm {{ $k->pengumpulan_id ? 'btn-outline-success' : 'btn-success' }} w-100 fw-semibold">
+                            {{ $k->pengumpulan_id ? '✏️ Update Jawaban' : '📤 Kirim Jawaban' }}
+                        </button>
+                    </div>
+                </form>
+            @else
+                <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 {{ $k->pengumpulan_id ? 'bg-light text-dark border' : 'bg-danger-subtle text-danger' }} rounded p-2 px-3 small">
+                    <div>
+                        @if($k->pengumpulan_id)
+                            <strong>🔒 Pengumpulan Selesai & Dikunci:</strong> Batas waktu telah berakhir, jawaban tidak dapat diubah lagi.
+                        @else
+                            <strong>🔒 Pengumpulan Ditutup:</strong> Batas waktu telah berakhir. Temui guru pengampu mata pelajaran untuk meminta izin susulan.
+                        @endif
+                    </div>
+                    @if($k->link_jawaban)
+                        <a href="{{ $k->link_jawaban }}" target="_blank" class="btn btn-sm btn-outline-primary flex-shrink-0">
+                            🔗 Lihat Jawaban Terkirim
+                        </a>
+                    @endif
                 </div>
-            </div>
-        @endforelse
+            @endif
+        </div>
+        @endif
     </div>
 </div>
+@empty
+<div class="alert alert-light border text-center text-muted py-4">
+    Belum ada materi atau tugas yang dibagikan pada mata pelajaran ini.
+</div>
+@endforelse
 @endsection
