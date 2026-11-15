@@ -8,7 +8,9 @@
     </div>
     <div class="d-flex gap-2">
         <button onclick="window.print()" class="btn btn-sm btn-outline-primary">🖨️ Cetak / PDF</button>
-        <a href="{{ route('guru.wali_kelas.export') }}" class="btn btn-sm btn-success">📥 Download Excel/CSV</a>
+        <a href="{{ route('guru.wali_kelas.export') }}" class="btn btn-sm btn-success text-nowrap fw-semibold">
+            📥 Export Rekap (CSV)
+        </a>
         <a href="{{ route('guru.dashboard') }}" class="btn btn-sm btn-outline-secondary">← Dashboard</a>
     </div>
 </div>

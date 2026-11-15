@@ -78,10 +78,23 @@
                         <button type="button" class="btn btn-sm btn-outline-warning py-0 px-2" data-bs-toggle="modal" data-bs-target="#editKonten{{ $k->id }}">
                             Edit
                         </button>
-                        <form action="{{ route('guru.konten.destroy', $k->id) }}" method="POST" onsubmit="return confirm('Hapus postingan ini beserta seluruh data terkait?')">
-                            @csrf @method('DELETE')
-                            <button type="submit" class="btn btn-sm btn-outline-danger py-0 px-2">Hapus</button>
-                        </form>
+                        @php
+    $adaPengumpulan = ($k->tipe === 'tugas') && (($k->jumlah_pengumpulan ?? 0) > 0);
+@endphp
+
+<form action="{{ route('guru.konten.destroy', $k->id) }}" method="POST" class="d-inline"
+      onsubmit="return {{ $adaPengumpulan
+          ? "confirm('⚠️ PERINGATAN KERAS!\\n\\nTugas ini sudah dikumpulkan oleh {$k->jumlah_pengumpulan} siswa ({$k->jumlah_dinilai} sudah dinilai).\\nMenghapus tugas ini akan MENGHAPUS PERMANEN seluruh jawaban dan nilai siswa tersebut!\\n\\nYakin tetap ingin menghapus?')"
+          : "confirm('Hapus " . $k->tipe . " ini?')" }}">
+    @csrf
+    @method('DELETE')
+    @if($adaPengumpulan)
+        <input type="hidden" name="paksa_hapus" value="1">
+    @endif
+    <button type="submit" class="btn btn-sm btn-outline-danger" title="Hapus">
+        🗑️ Hapus
+    </button>
+</form>
                     </div>
                 </div>
 

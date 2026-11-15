@@ -56,9 +56,10 @@ class SiswaKelasController extends Controller
         'materi_tugas.*',
         'pengumpulan_tugas.id as pengumpulan_id',
         'pengumpulan_tugas.link_jawaban',
+        'pengumpulan_tugas.teks_jawaban',
         'pengumpulan_tugas.nilai',
         'pengumpulan_tugas.catatan_guru',
-        'pengumpulan_tugas.updated_at as waktu_kumpul',
+        'pengumpulan_tugas.created_at as waktu_kumpul',
         'izin_susulan.id as izin_susulan_id'
     )
     ->orderBy('materi_tugas.created_at', 'desc')
@@ -70,41 +71,81 @@ class SiswaKelasController extends Controller
     // 2. Kirim atau Perbarui Jawaban Tugas Siswa
     public function kumpulTugas(Request $request, $tugasId)
     {
+        // Otomatis tambahkan https:// jika siswa mengetik link tanpa http:// atau https://
+        if ($request->filled('link_jawaban') && !preg_match('~^https?://~i', $request->link_jawaban)) {
+            $request->merge([
+                'link_jawaban' => 'https://' . ltrim($request->link_jawaban, '/'),
+            ]);
+        }
+
         $request->validate([
-            'link_jawaban' => 'required|url|max:500',
+            'link_jawaban' => [
+                'nullable',
+                'url',
+                'regex:~^https?://[a-zA-Z0-9-]+(\.[a-zA-Z0-9-]+)+~',
+                'max:500',
+                'required_without:teks_jawaban',
+            ],
+            'teks_jawaban' => 'nullable|string|max:10000',
+        ], [
+            'link_jawaban.url'              => 'Format link jawaban tidak valid (contoh: https://drive.google.com/...).',
+            'link_jawaban.regex'            => 'Link jawaban harus berupa alamat web/domain yang valid (contoh: https://drive.google.com/...).',
+            'link_jawaban.required_without' => 'Harap isi link jawaban atau ketik jawaban langsung.',
         ]);
 
         $tugas = DB::table('materi_tugas')->where('id', $tugasId)->firstOrFail();
 
-        // Cek apakah deadline sudah lewat
-        $lewatDeadline = $tugas->deadline && \Carbon\Carbon::now()->gt(\Carbon\Carbon::parse($tugas->deadline));
-        
-        if ($lewatDeadline) {
-            $punyaIzin = DB::table('izin_susulan')
+        // 1. Cek apakah tugas sudah dinilai oleh guru (kunci permanen)
+        $existing = DB::table('pengumpulan_tugas')
             ->where('materi_tugas_id', $tugasId)
             ->where('siswa_id', Auth::id())
-            ->exists();
+            ->first();
 
-        if (!$punyaIzin) {
-            return back()->with('error', 'Waktu pengumpulan tugas sudah habis. Silakan temui guru pengampu untuk meminta izin susulan.');
+        if ($existing && !is_null($existing->nilai)) {
+            return back()->with('error', 'Jawaban tidak dapat diubah karena tugas sudah dinilai oleh guru.');
         }
+
+        // 2. Cek deadline dengan zona waktu WIB
+        $waktuSekarang = \Carbon\Carbon::now('Asia/Jakarta');
+        $lewatDeadline = $tugas->deadline && $waktuSekarang->gt(\Carbon\Carbon::parse($tugas->deadline, 'Asia/Jakarta'));
+
+        if ($lewatDeadline) {
+            $punyaIzin = DB::table('izin_susulan')
+                ->where('materi_tugas_id', $tugasId)
+                ->where('siswa_id', Auth::id())
+                ->exists();
+
+            if (!$punyaIzin) {
+                return back()->with('error', 'Waktu pengumpulan tugas sudah habis. Silakan temui guru pengampu untuk meminta izin susulan.');
+            }
+        }
+
+        // 3. Simpan atau perbarui dengan timestamp WIB eksplisit
+        if ($existing) {
+            DB::table('pengumpulan_tugas')
+                ->where('id', $existing->id)
+                ->update([
+                    'link_jawaban' => $request->link_jawaban,
+                    'teks_jawaban' => $request->teks_jawaban,
+                    'updated_at'   => $waktuSekarang->toDateTimeString(),
+                ]);
+        } else {
+            DB::table('pengumpulan_tugas')->insert([
+                'materi_tugas_id' => $tugasId,
+                'siswa_id'        => Auth::id(),
+                'link_jawaban'    => $request->link_jawaban,
+                'teks_jawaban'    => $request->teks_jawaban,
+                'created_at'      => $waktuSekarang->toDateTimeString(),
+                'updated_at'      => $waktuSekarang->toDateTimeString(),
+            ]);
+        }
+
+        // Cabut izin susulan otomatis setelah siswa mengirim jawaban susulan
+        DB::table('izin_susulan')
+            ->where('materi_tugas_id', $tugasId)
+            ->where('siswa_id', Auth::id())
+            ->delete();
+
+        return back()->with('success', 'Jawaban tugas berhasil dikirim.');
     }
-
-    DB::table('pengumpulan_tugas')->updateOrInsert(
-        ['materi_tugas_id' => $tugasId, 'siswa_id' => Auth::id()],
-        [
-            'link_jawaban' => $request->link_jawaban,
-            'updated_at'   => now(),
-            'created_at'   => now(),
-        ]
-    );
-
-    // Cabut izin susulan setelah digunakan agar siswa tidak bisa mengubah jawaban lagi lewat deadline
-    DB::table('izin_susulan')
-        ->where('materi_tugas_id', $tugasId)
-        ->where('siswa_id', Auth::id())
-        ->delete();
-
-    return back()->with('success', 'Jawaban tugas berhasil dikirim.');
-}
 }
