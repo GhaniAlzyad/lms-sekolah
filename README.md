@@ -74,7 +74,6 @@ Sistem ini dibangun dengan arsitektur yang sangat ringan, cepat, dan ramah terha
    ```
 
 Akses aplikasi melalui browser di alamat http://127.0.0.1:8000.
-```
 
 ## 🔑 Akun Uji Coba (Default Seeder)
 
